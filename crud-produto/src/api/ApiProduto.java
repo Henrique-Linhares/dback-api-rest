@@ -5,8 +5,9 @@ import spark.Request;
 import spark.Response;
 import spark.Route;
 import spark.Filter;
-
+import dao.CategoriaDAO;
 import dao.ProdutoDAO;
+import model.Categoria;
 import model.Produto;
 
 import com.google.gson.Gson;
@@ -15,6 +16,7 @@ public class ApiProduto {
 
     // instancia do DAO e o GSON
     private static final ProdutoDAO dao = new ProdutoDAO();
+    private static final CategoriaDAO categoriaDAO = new CategoriaDAO();
     private static final Gson gson = new Gson();
 
     // constante para garantir que todas as respostas sejam JSON
@@ -138,6 +140,109 @@ public class ApiProduto {
                 }
             }
         });
+
+        // get categorias
+        get("/categorias",(request, response) -> {
+            return gson.toJson(categoriaDAO.buscarTodos());
+        });
+
+          // GET /categorias/:id - Buscar por ID
+        get("/categorias/:id", new Route() {
+            @Override
+            public Object handle(Request request, Response response) {
+                try {
+                    Long id = Long.parseLong(request.params(":id"));
+
+                   Categoria categoria = categoriaDAO.buscarPorId(id);
+
+                    if (categoria != null) {
+                        return gson.toJson(categoria);
+                    } else {
+                        response.status(404); 
+                        return "{\"mensagem\": \"categoria com ID " + id + " não encontrado\"}";
+                    }
+                } catch (NumberFormatException e) {
+                    response.status(400); 
+                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
+                }
+            }
+        });
+
+         // POST /categorias - Criar nova categora
+        post("/categorias", new Route() {
+            @Override
+            public Object handle(Request request, Response response) {
+                try {
+                    Categoria novaCategoria = gson.fromJson(request.body(), Categoria.class);
+                    categoriaDAO.inserir(novaCategoria);
+
+                    response.status(201); // Created
+                    return gson.toJson(novaCategoria);
+                } catch (Exception e) {
+                    response.status(500);
+                    System.err.println("Erro ao processar requisição POST: " + e.getMessage());
+                    e.printStackTrace();
+                    return "{\"mensagem\": \"Erro ao criar categoria.\"}";
+                }
+            }
+        });
+
+         // PUT /categorias/:id - Atualizar produto existente
+        put("/categorias/:id", new Route() {
+            @Override
+            public Object handle(Request request, Response response) {
+                try {
+                    Long id = Long.parseLong(request.params(":id")); // Usa Long
+
+                    if (categoriaDAO.buscarPorId(id) == null) {
+                        response.status(404);
+                        return "{\"mensagem\": \"Categoria não encontrada para atualização.\"}";
+                    }
+
+                    Categoria categoriaParaAtualizar = gson.fromJson(request.body(), Categoria.class);
+                    categoriaParaAtualizar.setId(id); // garante que o ID da URL seja usado
+
+                    categoriaDAO.atualizar(categoriaParaAtualizar);
+
+                    response.status(200); // OK
+                    return gson.toJson(categoriaParaAtualizar);
+
+                } catch (NumberFormatException e) {
+                    response.status(400); // Bad Request
+                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
+                } catch (Exception e) {
+                    response.status(500);
+                    System.err.println("Erro ao processar requisição PUT: " + e.getMessage());
+                    e.printStackTrace();
+                    return "{\"mensagem\": \"Erro ao atualizar Categoria.\"}";
+                }
+            }
+        });
+
+        // DELETE /categorias/:id - Deletar uma categoria
+        delete("/categorias/:id", new Route() {
+            @Override
+            public Object handle(Request request, Response response) {
+                try {
+                    Long id = Long.parseLong(request.params(":id")); // Usa Long
+
+                    if (categoriaDAO.buscarPorId(id) == null) {
+                        response.status(404);
+                        return "{\"mensagem\": \"Categoria não encontrada para exclusão.\"}";
+                    }
+
+                    categoriaDAO.deletar(id); 
+
+                    response.status(204);
+                    return ""; 
+
+                } catch (NumberFormatException e) {
+                    response.status(400);
+                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
+                }
+            }
+        });
+
 
         System.out.println("API de Produtos iniciada na porta 4567. Acesse: http://localhost:4567/produtos");
     }

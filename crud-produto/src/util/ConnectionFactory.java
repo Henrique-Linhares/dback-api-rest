@@ -14,7 +14,7 @@ public class ConnectionFactory {
     public static Connection getConnection() {
 
         try {
-            // carrega o Driver JDBC na memória
+            // carrega o DriverJDBC na memória
             Class.forName(DRIVER);
             // tenta conectar ao banco usando as credenciais e URL
             // o DriverManager procura o Driver carregado que corresponde à URL

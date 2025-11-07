@@ -1,15 +1,18 @@
 package model;
 
 public class Produto {
+
+    // atributos
     private Long id;
     private String nome;
     private double preco;
     private int estoque;
 
-    // Construtor Vazio
-    public Produto() {}
+    // contrutor vazio (necessário para frameworks como Gson)
+    public Produto() {
+    }
 
-    // Construtor com todos os atributos
+    // construtor com todos os campos
     public Produto(Long id, String nome, double preco, int estoque) {
         this.id = id;
         this.nome = nome;
@@ -17,13 +20,14 @@ public class Produto {
         this.estoque = estoque;
     }
 
-    // Construtor sem o id
+    // construtor sem o id (para inserções, onde o id é auto-gerado)
     public Produto(String nome, double preco, int estoque) {
         this.nome = nome;
         this.preco = preco;
         this.estoque = estoque;
     }
 
+    // getters e setters
     public Long getId() {
         return id;
     }
@@ -56,9 +60,12 @@ public class Produto {
         this.estoque = estoque;
     }
 
+    // toString para facilitar a depuração
     @Override
     public String toString() {
-        return "Nome: " + nome + "\nPreço: " + preco + "\nEstoque: " + estoque;
+        return "Produto [id=" + id +
+                ", nome=" + nome +
+                ", preco=" + preco +
+                ", estoque=" + estoque + "]";
     }
-    
 }

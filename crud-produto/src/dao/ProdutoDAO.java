@@ -12,147 +12,154 @@ import model.Produto;
 import util.ConnectionFactory;
 
 public class ProdutoDAO {
-
-    // =============================================
-    // FIND(GET)
-    // =============================================
-    public List<Produto> buscarTodosProdutos() {
+    // ------------------------------------
+    // READ
+    // ------------------------------------
+    public List<Produto> buscarTodos() {
         List<Produto> produtos = new ArrayList<>();
+        // query SQL para selecionar todos os campos
         String sql = "SELECT * FROM produtos";
+        // o bloco try-with-resources garante que Connection, PreparedStatement e
+        // ResultSet
+        // serão fechados automaticamente, mesmo que ocorram exceções
+        try (Connection conn = ConnectionFactory.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
 
-        try (Connection comm = ConnectionFactory.getConnection()) {
-            // Preparando a consulta SQL
-            PreparedStatement stmt = comm.prepareStatement(sql);
-            // Envia a consulta SQL
-            ResultSet rs = stmt.executeQuery();
-
-            // Enquanto tiver um próximo produto ele irá iterar na lista
+            // itera sobre cada linha retornada pelo banco
             while (rs.next()) {
-                // Cria uma nova instância de produto
+                // cria um novo objeto Produto a partir dos dados da linha atual do ResultSet
                 Produto produto = new Produto(
                         rs.getLong("id"),
                         rs.getString("nome"),
                         rs.getDouble("preco"),
                         rs.getInt("estoque"));
-
-                // Adiciona na lista
                 produtos.add(produto);
             }
         } catch (SQLException e) {
-            System.out.printf("Erro ao buscar produtos: ", e.getMessage());
-            // Passo a passo do erro
+            System.err.println("Erro ao buscar produtos: " + e.getMessage());
             e.printStackTrace();
         }
         return produtos;
     }
 
-    // =============================================
-    // FIND BY ID(GET)
-    // =============================================
-
+    // ------------------------------------
+    // READ BY ID
+    // ------------------------------------
     public Produto buscarPorId(Long id) {
-        // Carrega esse objeto com null caso não encontre nada na busca
-        Produto produto = null;
-        String sql = "SELECT id, nome, preco, estoque FROM produtos WHERE id= ?";
 
-        try (Connection comm = ConnectionFactory.getConnection()) {
-            PreparedStatement stmt = comm.prepareStatement(sql);
+        Produto produto = null;
+
+        // o '?' é um placeholder que será preenchido pelo PreparedStatement
+        String sql = "SELECT id, nome, preco, estoque FROM produtos WHERE id = ?";
+
+        try (Connection conn = ConnectionFactory.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            // define o valor do parâmetro (o '?' na posição 1)
             stmt.setLong(1, id);
 
             try (ResultSet rs = stmt.executeQuery()) {
+                // se houver resultado, move o cursor e mapeia o objeto
                 if (rs.next()) {
-                    produto = new Produto(rs.getLong("id"),
+                    produto = new Produto(
+                            rs.getLong("id"),
                             rs.getString("nome"),
                             rs.getDouble("preco"),
                             rs.getInt("estoque"));
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Erro ao buscar o produto. ID: " + id);
-            System.out.println(e.getMessage());
-            // Passo a passo do erro
+            System.err.println("Erro ao buscar produto por ID: " + id + ". Detalhes: " + e.getMessage());
             e.printStackTrace();
         }
-
         return produto;
     }
 
-    // =============================================
-    // CREATE (POST)
-    // =============================================
-    public void inserirProduto(Produto produto) {
-        String sql = "INSERT INTO produtos(nome, preco, estoque) VALUES(?, ?, ?)";
+    // ------------------------------------
+    // CREATE
+    // ------------------------------------
+    public void inserir(Produto produto) {
 
-        try (Connection comm = ConnectionFactory.getConnection()) {
-            // o Return_generated_keys retornará a chave gerada(Criará uma chave nova)
-            PreparedStatement stmt = comm.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        // usa Statement.RETURN_GENERATED_KEYS para solicitar o ID gerado
+        String sql = "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)";
 
+        try (Connection conn = ConnectionFactory.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            // define os parâmetros da query
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
 
+            // executa a inserção
             stmt.executeUpdate();
 
+            // recupera a chave gerada (o novo ID)
             try (ResultSet rs = stmt.getGeneratedKeys()) {
                 if (rs.next()) {
+                    // define o ID no objeto Produto que foi passado (importante para a API)
                     produto.setId(rs.getLong(1));
                 }
             }
+
         } catch (SQLException e) {
-            System.out.println("Erro ao criar o produto: " + produto.getNome());
-            System.out.println(e.getMessage());
-            // Passo a passo do erro
+            System.err.println("Erro ao inserir produto: " + produto.getNome() + ". Detalhes: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
+    // ------------------------------------
+    // UPDATE
+    // ------------------------------------
+    public void atualizar(Produto produto) {
 
-    // =============================================
-    // UPDATE (PUT)
-    // =============================================
-
-    public void atualizarProduto(Produto produto) {
+        // a atualização precisa do ID no WHERE e dos novos valores
         String sql = "UPDATE produtos SET nome = ?, preco = ?, estoque = ? WHERE id = ?";
 
-        try (Connection comm = ConnectionFactory.getConnection()) {
-            PreparedStatement stmt = comm.prepareStatement(sql);
+        try (Connection conn = ConnectionFactory.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            // define os parâmetros (os novos valores)
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
+
+            // define o ID no WHERE (o último '?')
             stmt.setLong(4, produto.getId());
 
+            // executa a atualização
             int linhasAfetadas = stmt.executeUpdate();
-            System.out.println("Produto ID: " + produto.getId() + " atualizado.");
-            System.out.println("Linhas afetadas: " + linhasAfetadas);
+            System.out.println("Produto ID " + produto.getId() + " atualizado. Linhas afetadas: " + linhasAfetadas);
 
         } catch (SQLException e) {
-            System.out.println("Erro ao atualizar o produto: " + produto.getNome());
-            System.out.println(e.getMessage());
-            // Passo a passo do erro
+            System.err.println("Erro ao atualizar produto ID: " + produto.getId() + ". Detalhes: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
+    // ------------------------------------
+    // DELETE
+    // ------------------------------------
+    public void deletar(Long id) {
 
-    // =============================================
-    // DELETE (DELETE)
-    // =============================================
-
-    public void deletarProduto(int id) {
+        // a exclusão precisa do ID no WHERE
         String sql = "DELETE FROM produtos WHERE id = ?";
 
-        try (Connection comm = ConnectionFactory.getConnection()) {
-            PreparedStatement stmt = comm.prepareStatement(sql);
+        try (Connection conn = ConnectionFactory.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            // define o ID do produto a ser deletado
             stmt.setLong(1, id);
+
+            // executa a exclusão
             int linhasAfetadas = stmt.executeUpdate();
-            System.out.println("Produto Excluído");
-            System.out.println("Linhas Afetadas: " + linhasAfetadas);
-        } catch (Exception e) {
-            System.out.println("Erro ao excluir produto com ID" + id);
-            System.out.println(e.getMessage());
+            System.out.println("Tentativa de deletar Produto ID " + id + ". Linhas afetadas: " + linhasAfetadas);
+
+        } catch (SQLException e) {
+            System.err.println("Erro ao deletar produto ID: " + id + ". Detalhes: " + e.getMessage());
             e.printStackTrace();
         }
     }
 }
+
