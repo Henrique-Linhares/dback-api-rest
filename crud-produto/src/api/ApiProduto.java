@@ -1,6 +1,9 @@
 package api;
 
 import static spark.Spark.*;
+
+import java.sql.SQLIntegrityConstraintViolationException;
+
 import spark.Request;
 import spark.Response;
 import spark.Route;
@@ -142,107 +145,101 @@ public class ApiProduto {
         });
 
         // get categorias
-        get("/categorias",(request, response) -> {
-            return gson.toJson(categoriaDAO.buscarTodos());
-        });
+        get("/categorias", (request, response) -> gson.toJson(categoriaDAO.buscarTodos()));
 
-          // GET /categorias/:id - Buscar por ID
-        get("/categorias/:id", new Route() {
-            @Override
-            public Object handle(Request request, Response response) {
-                try {
-                    Long id = Long.parseLong(request.params(":id"));
+        // GET /categorias/:id - Buscar por ID
+        get("/categorias/:id", (Request request, Response response) -> {
+            try {
+                Long id = Long.parseLong(request.params(":id"));
 
-                   Categoria categoria = categoriaDAO.buscarPorId(id);
+                Categoria categoria = categoriaDAO.buscarPorId(id);
 
-                    if (categoria != null) {
-                        return gson.toJson(categoria);
-                    } else {
-                        response.status(404); 
-                        return "{\"mensagem\": \"categoria com ID " + id + " não encontrado\"}";
-                    }
-                } catch (NumberFormatException e) {
-                    response.status(400); 
-                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
+                if (categoria != null) {
+                    return gson.toJson(categoria);
+                } else {
+                    response.status(404);
+                    return "{\"mensagem\": \"categoria com ID " + id + " não encontrado\"}";
                 }
+            } catch (NumberFormatException e) {
+                response.status(400);
+                return "{\"mensagem\": \"Formato de ID inválido.\"}";
             }
         });
 
-         // POST /categorias - Criar nova categora
-        post("/categorias", new Route() {
-            @Override
-            public Object handle(Request request, Response response) {
-                try {
-                    Categoria novaCategoria = gson.fromJson(request.body(), Categoria.class);
-                    categoriaDAO.inserir(novaCategoria);
+        // POST /categorias - Criar nova categoria
+        post("/categorias", (request, response) -> {
+            try {
+                Categoria novaCategoria = gson.fromJson(request.body(), Categoria.class);
+                categoriaDAO.inserir(novaCategoria);
 
-                    response.status(201); // Created
-                    return gson.toJson(novaCategoria);
-                } catch (Exception e) {
-                    response.status(500);
-                    System.err.println("Erro ao processar requisição POST: " + e.getMessage());
-                    e.printStackTrace();
-                    return "{\"mensagem\": \"Erro ao criar categoria.\"}";
-                }
+                response.status(201); // Created
+                return gson.toJson(novaCategoria);
+            } catch (Exception e) {
+                response.status(500);
+                System.err.println("Erro ao processar requisição POST: " + e.getMessage());
+                e.printStackTrace();
+                return "{\"mensagem\": \"Erro ao criar categoria.\"}";
             }
         });
 
-         // PUT /categorias/:id - Atualizar produto existente
-        put("/categorias/:id", new Route() {
-            @Override
-            public Object handle(Request request, Response response) {
-                try {
-                    Long id = Long.parseLong(request.params(":id")); // Usa Long
+        // PUT /categorias/:id - Atualizar produto existente
+        put("/categorias/:id", (request, response) -> {
+            try {
+                Long id = Long.parseLong(request.params(":id")); // Usa Long
 
-                    if (categoriaDAO.buscarPorId(id) == null) {
-                        response.status(404);
-                        return "{\"mensagem\": \"Categoria não encontrada para atualização.\"}";
-                    }
-
-                    Categoria categoriaParaAtualizar = gson.fromJson(request.body(), Categoria.class);
-                    categoriaParaAtualizar.setId(id); // garante que o ID da URL seja usado
-
-                    categoriaDAO.atualizar(categoriaParaAtualizar);
-
-                    response.status(200); // OK
-                    return gson.toJson(categoriaParaAtualizar);
-
-                } catch (NumberFormatException e) {
-                    response.status(400); // Bad Request
-                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
-                } catch (Exception e) {
-                    response.status(500);
-                    System.err.println("Erro ao processar requisição PUT: " + e.getMessage());
-                    e.printStackTrace();
-                    return "{\"mensagem\": \"Erro ao atualizar Categoria.\"}";
+                if (categoriaDAO.buscarPorId(id) == null) {
+                    response.status(404);
+                    return "{\"mensagem\": \"Categoria não encontrada para atualização.\"}";
                 }
+
+                Categoria categoriaParaAtualizar = gson.fromJson(request.body(), Categoria.class);
+                categoriaParaAtualizar.setId(id); // garante que o ID da URL seja usado
+
+                categoriaDAO.atualizar(categoriaParaAtualizar);
+
+                response.status(200); // OK
+                return gson.toJson(categoriaParaAtualizar);
+
+            } catch (NumberFormatException e) {
+                response.status(400); // Bad Request
+                return "{\"mensagem\": \"Formato de ID inválido.\"}";
+            } catch (Exception e) {
+                response.status(500);
+                System.err.println("Erro ao processar requisição PUT: " + e.getMessage());
+                e.printStackTrace();
+                return "{\"mensagem\": \"Erro ao atualizar Categoria.\"}";
             }
         });
 
         // DELETE /categorias/:id - Deletar uma categoria
-        delete("/categorias/:id", new Route() {
-            @Override
-            public Object handle(Request request, Response response) {
-                try {
-                    Long id = Long.parseLong(request.params(":id")); // Usa Long
+        delete("/categorias/:id", (request, response) -> {
+            try {
+                Long id = Long.parseLong(request.params(":id")); // Usa Long
 
-                    if (categoriaDAO.buscarPorId(id) == null) {
-                        response.status(404);
-                        return "{\"mensagem\": \"Categoria não encontrada para exclusão.\"}";
-                    }
+                if (categoriaDAO.buscarPorId(id) == null) {
+                    response.status(404);
+                    return "{\"mensagem\": \"Categoria não encontrada para exclusão.\"}";
+                }
 
-                    categoriaDAO.deletar(id); 
+                categoriaDAO.deletar(id);
 
-                    response.status(204);
-                    return ""; 
+                response.status(204);
+                return "";
 
-                } catch (NumberFormatException e) {
-                    response.status(400);
-                    return "{\"mensagem\": \"Formato de ID inválido.\"}";
+            } catch (NumberFormatException e) {
+                response.status(400);
+                return "{\"mensagem\": \"Formato de ID inválido.\"}";
+            } catch (Exception e) {
+                //Pega a causa da exceção, que no caso é violação da chave estrangeira
+                if(e.getCause() instanceof java.sql.SQLIntegrityConstraintViolationException) {
+                    response.status(409);
+                    return "{\"mensagem\": \"Não é possível excluir uma categoria usada por mais produtos.\"}";
                 }
             }
-        });
 
+            response.status(500);
+            return "{\"mensagem\": \"Erro ao deletar categoria.\"}";
+        });
 
         System.out.println("API de Produtos iniciada na porta 4567. Acesse: http://localhost:4567/produtos");
     }

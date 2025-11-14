@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import model.Categoria;
 import model.Produto;
 import util.ConnectionFactory;
 
@@ -18,7 +19,10 @@ public class ProdutoDAO {
     public List<Produto> buscarTodos() {
         List<Produto> produtos = new ArrayList<>();
         // query SQL para selecionar todos os campos
-        String sql = "SELECT * FROM produtos";
+        String sql = "SELECT p.id, p.nome, p.preco, p.estoque, " +
+                "c.id as id_categoria, c.nome as nome_categoria " +
+                "FROM produtos p" +
+                "LEFT JOIN categorias c ON p.id_categoria = c.id";
         // o bloco try-with-resources garante que Connection, PreparedStatement e
         // ResultSet
         // serão fechados automaticamente, mesmo que ocorram exceções
@@ -28,12 +32,21 @@ public class ProdutoDAO {
 
             // itera sobre cada linha retornada pelo banco
             while (rs.next()) {
+                Categoria categoria = null;
+
+                // Diferente de null
+                if (!rs.wasNull()) {
+                    categoria = new Categoria(rs.getLong("idCategoria"),
+                            rs.getString("nome_categoria"));
+                }
+
                 // cria um novo objeto Produto a partir dos dados da linha atual do ResultSet
                 Produto produto = new Produto(
                         rs.getLong("id"),
                         rs.getString("nome"),
                         rs.getDouble("preco"),
-                        rs.getInt("estoque"));
+                        rs.getInt("estoque"),
+                        categoria);
                 produtos.add(produto);
             }
         } catch (SQLException e) {
@@ -51,7 +64,11 @@ public class ProdutoDAO {
         Produto produto = null;
 
         // o '?' é um placeholder que será preenchido pelo PreparedStatement
-        String sql = "SELECT id, nome, preco, estoque FROM produtos WHERE id = ?";
+         String sql = "SELECT p.id, p.nome, p.preco, p.estoque, " +
+                     "c.id as id_categoria, c.nome as nome_categoria " +
+                     "FROM produtos p " +
+                     "LEFT JOIN categorias c ON p.id_categoria = c.id " +
+                     "WHERE p.id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -62,11 +79,20 @@ public class ProdutoDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 // se houver resultado, move o cursor e mapeia o objeto
                 if (rs.next()) {
+
+                    Categoria categoria = null;
+
+                    // Diferente de null
+                    if (!rs.wasNull()) {
+                        categoria = new Categoria(rs.getLong("idCategoria"),
+                                rs.getString("nome_categoria"));
+                    }
                     produto = new Produto(
                             rs.getLong("id"),
                             rs.getString("nome"),
                             rs.getDouble("preco"),
-                            rs.getInt("estoque"));
+                            rs.getInt("estoque"),
+                            categoria);
                 }
             }
         } catch (SQLException e) {
@@ -82,7 +108,7 @@ public class ProdutoDAO {
     public void inserir(Produto produto) {
 
         // usa Statement.RETURN_GENERATED_KEYS para solicitar o ID gerado
-        String sql = "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO produtos (nome, preco, estoque, id_categoria) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -91,6 +117,10 @@ public class ProdutoDAO {
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
+
+            if(produto.getCategoria() != null && produto.getCategoria().getId() != null) {
+                stmt.setLong(4, produto.getCategoria().getId());
+            }
 
             // executa a inserção
             stmt.executeUpdate();
@@ -115,7 +145,7 @@ public class ProdutoDAO {
     public void atualizar(Produto produto) {
 
         // a atualização precisa do ID no WHERE e dos novos valores
-        String sql = "UPDATE produtos SET nome = ?, preco = ?, estoque = ? WHERE id = ?";
+        String sql = "UPDATE produtos SET nome = ?, preco = ?, estoque = ?, id_categoria = ? WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -124,9 +154,16 @@ public class ProdutoDAO {
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
+            
+            if(produto.getCategoria() != null && produto.getCategoria().getId() != null) {
+                stmt.setLong(4, produto.getCategoria().getId());
+            }
+            else {
+                stmt.setNull(4, java.sql.Types.BIGINT);
+            }
 
             // define o ID no WHERE (o último '?')
-            stmt.setLong(4, produto.getId());
+            stmt.setLong(5, produto.getId());
 
             // executa a atualização
             int linhasAfetadas = stmt.executeUpdate();
@@ -162,4 +199,3 @@ public class ProdutoDAO {
         }
     }
 }
-

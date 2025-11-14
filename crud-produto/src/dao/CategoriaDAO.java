@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ public class CategoriaDAO {
         
         List<Categoria> categorias = new ArrayList<>();
 
-        String sql = "SELECT * FROM categoria";
+        String sql = "SELECT * FROM categorias";
 
         try (Connection conn = ConnectionFactory.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql);
@@ -46,7 +47,7 @@ public class CategoriaDAO {
 
         Categoria categoria = null;
 
-        String sql = "SELECT id, nome FROM categoria WHERE id = ?";
+        String sql = "SELECT id, nome FROM categorias WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -126,7 +127,7 @@ public class CategoriaDAO {
     // ------------------------------------
     // DELETE
     // ------------------------------------
-    public void deletar(Long id) {
+    public void deletar(Long id) throws SQLIntegrityConstraintViolationException {
 
         String sql = "DELETE FROM categorias WHERE id = ?";
 
@@ -139,9 +140,15 @@ public class CategoriaDAO {
             int linhasAfetadas = stmt.executeUpdate();
             System.out.println("Tentativa de deletar Categoria ID " + id + ". Linhas afetadas: " + linhasAfetadas);
 
-        } catch (SQLException e) {
+
+        } catch(SQLIntegrityConstraintViolationException e) {
+            throw new SQLIntegrityConstraintViolationException();
+        } 
+        
+        catch (SQLException e) {
             System.err.println("Erro ao deletar categoria ID: " + id + ". Detalhes: " + e.getMessage());
             e.printStackTrace();
+            throw new SQLIntegrityConstraintViolationException();
         }
     }
 }

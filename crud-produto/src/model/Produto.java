@@ -7,24 +7,27 @@ public class Produto {
     private String nome;
     private double preco;
     private int estoque;
+    private Categoria categoria;
 
     // contrutor vazio (necessário para frameworks como Gson)
     public Produto() {
     }
 
     // construtor com todos os campos
-    public Produto(Long id, String nome, double preco, int estoque) {
+    public Produto(Long id, String nome, double preco, int estoque, Categoria categoria) {
         this.id = id;
         this.nome = nome;
         this.preco = preco;
         this.estoque = estoque;
+        this.categoria = categoria;
     }
 
     // construtor sem o id (para inserções, onde o id é auto-gerado)
-    public Produto(String nome, double preco, int estoque) {
+    public Produto(String nome, double preco, int estoque, Categoria categoria) {
         this.nome = nome;
         this.preco = preco;
         this.estoque = estoque;
+        this.categoria = categoria;
     }
 
     // getters e setters
@@ -60,12 +63,21 @@ public class Produto {
         this.estoque = estoque;
     }
 
+    public Categoria getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(Categoria categoria) {
+        this.categoria = categoria;
+    }
+
     // toString para facilitar a depuração
     @Override
     public String toString() {
         return "Produto [id=" + id +
                 ", nome=" + nome +
                 ", preco=" + preco +
-                ", estoque=" + estoque + "]";
+                ", estoque=" + estoque + 
+                ", categoria=" + (categoria != null ? categoria.getNome() : "null") +"]";// Ternário para verificar se o campo categoria é nulo
     }
 }
