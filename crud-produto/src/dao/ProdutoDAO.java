@@ -21,7 +21,7 @@ public class ProdutoDAO {
         // query SQL para selecionar todos os campos
         String sql = "SELECT p.id, p.nome, p.preco, p.estoque, " +
                 "c.id as id_categoria, c.nome as nome_categoria " +
-                "FROM produtos p" +
+                "FROM produtos p " +
                 "LEFT JOIN categorias c ON p.id_categoria = c.id";
         // o bloco try-with-resources garante que Connection, PreparedStatement e
         // ResultSet
@@ -36,7 +36,7 @@ public class ProdutoDAO {
 
                 // Diferente de null
                 if (!rs.wasNull()) {
-                    categoria = new Categoria(rs.getLong("idCategoria"),
+                    categoria = new Categoria(rs.getLong("id_categoria"), // ✔️ CORRIGIDO para "id_categoria"
                             rs.getString("nome_categoria"));
                 }
 
@@ -60,15 +60,14 @@ public class ProdutoDAO {
     // READ BY ID
     // ------------------------------------
     public Produto buscarPorId(Long id) {
-
         Produto produto = null;
 
-        // o '?' é um placeholder que será preenchido pelo PreparedStatement
-         String sql = "SELECT p.id, p.nome, p.preco, p.estoque, " +
-                     "c.id as id_categoria, c.nome as nome_categoria " +
-                     "FROM produtos p " +
-                     "LEFT JOIN categorias c ON p.id_categoria = c.id " +
-                     "WHERE p.id = ?";
+        // Adicionado o WHERE p.id = ?
+        String sql = "SELECT p.id, p.nome, p.preco, p.estoque, " +
+                "c.id as id_categoria, c.nome as nome_categoria " +
+                "FROM produtos p " +
+                "LEFT JOIN categorias c ON p.id_categoria = c.id " +
+                "WHERE p.id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -84,7 +83,8 @@ public class ProdutoDAO {
 
                     // Diferente de null
                     if (!rs.wasNull()) {
-                        categoria = new Categoria(rs.getLong("idCategoria"),
+                        // Busca pelo alias correto definido no SQL: 'id_categoria'
+                        categoria = new Categoria(rs.getLong("id_categoria"),
                                 rs.getString("nome_categoria"));
                     }
                     produto = new Produto(
@@ -118,7 +118,7 @@ public class ProdutoDAO {
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
 
-            if(produto.getCategoria() != null && produto.getCategoria().getId() != null) {
+            if (produto.getCategoria() != null && produto.getCategoria().getId() != null) {
                 stmt.setLong(4, produto.getCategoria().getId());
             }
 
@@ -154,11 +154,10 @@ public class ProdutoDAO {
             stmt.setString(1, produto.getNome());
             stmt.setDouble(2, produto.getPreco());
             stmt.setInt(3, produto.getEstoque());
-            
-            if(produto.getCategoria() != null && produto.getCategoria().getId() != null) {
+
+            if (produto.getCategoria() != null && produto.getCategoria().getId() != null) {
                 stmt.setLong(4, produto.getCategoria().getId());
-            }
-            else {
+            } else {
                 stmt.setNull(4, java.sql.Types.BIGINT);
             }
 

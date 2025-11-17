@@ -1,9 +1,6 @@
 package api;
 
 import static spark.Spark.*;
-
-import java.sql.SQLIntegrityConstraintViolationException;
-
 import spark.Request;
 import spark.Response;
 import spark.Route;
